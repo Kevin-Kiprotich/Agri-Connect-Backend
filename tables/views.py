@@ -12,8 +12,8 @@ class UploadSums(APIView):
       file=request.FILES.get('file')
 
       print(grantee)
-      processedCSV=CreateSUMS(file)
-      response=Response({"csv_data":processedCSV}, content_type='text/csv')
+      processedCSV,filename=CreateSUMS(grantee,file)
+      response=Response({"csv_data":processedCSV,}, content_type='text/csv')
       response['Content-Disposition'] = 'attachment; filename="file"'
       return response
 
