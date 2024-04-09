@@ -3,7 +3,7 @@ import ast
 import json
 import warnings
 import os
-
+from django.core.files.base import ContentFile
 
 """
     Create a function for custom rounding
@@ -20,7 +20,7 @@ def custom_round(x):
     Take inputs as grantee and file and obtain the individual sheets for processing
 """
 def CreateSUMS(grantee, file):
-
+    csvs_list={}
     # Suppress openpyxl warnings
     warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
@@ -246,7 +246,7 @@ def CreateSUMS(grantee, file):
         # Drop rows where 'district' column is nan
         df_json = df_json[df_json['district'] != 'nan']
         df_json = df_json[df_json['district'] != 0]
-        
+        df_json=df_json.dropna(how='all')
         #change the sheet names
         new_sheet_name=sheet_name.replace('-','')
         new_sheet_name=new_sheet_name.replace('  ','')
@@ -254,11 +254,11 @@ def CreateSUMS(grantee, file):
         new_sheet_name=new_sheet_name.replace('June','Jun')
         sheet_name_list=new_sheet_name.split(" ")
         new_sheet_name=sheet_name_list[0].casefold()+"_"+sheet_name_list[1]
-
-        filename=f'sums_{grantee}_{new_sheet_name}'
+        df_json.to_csv('test_file.csv',index=False)
+        filename=f'sums_{grantee}_{new_sheet_name}'.casefold()
         
         # # Final CSV Export:
         # # output_csv_path = os.path.join(output_folder, f"SUMS_{grantee}_{sheet_name}.csv")
         # df_json.to_csv(index=False)
-        
-    return df_json.to_csv(index=False), filename
+        csvs_list[filename]=ContentFile(df_json.to_csv(index=False))
+    return csvs_list
