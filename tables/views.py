@@ -32,7 +32,11 @@ class UploadSums(APIView):
       response['Content-Disposition'] = 'attachment; filename="file"'
       return response
 
-      
+class computeTotals(APIView):
+   def post(self,request):
+      grantee=request.data.get('grantee')
+
+  
 class getSUMS(APIView):
    def post(self,request):
       grantee=request.data.get('grantee')
@@ -46,7 +50,6 @@ class getSUMS(APIView):
          data=SUMS.objects.get(grantee=grantee,quota=quota,year=year)
          print(data)
          df=pd.read_csv(data.file.path)
-
          #Drop null values
          df.dropna(inplace=True)
          # print(df.head())
@@ -55,7 +58,7 @@ class getSUMS(APIView):
          
          for index, row in filtered_df.iterrows():
             col=ast.literal_eval(row[column])
-            print(col)
+            
             objectStruct={
                'district':row['district'],
                'adult_male':col["Adult_Male"],
@@ -66,8 +69,6 @@ class getSUMS(APIView):
                'total':col["Total"],
             }
             sumsdata.append(objectStruct)
-
-         
          return Response({'sucess':True,'data':sumsdata},status=status.HTTP_200_OK)
       except SUMS.DoesNotExist:
          return Response({'success':False},status=status.HTTP_404_NOT_FOUND)
