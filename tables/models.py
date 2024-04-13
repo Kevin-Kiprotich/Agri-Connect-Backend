@@ -8,4 +8,8 @@ class SUMS(models.Model):
     file=models.FileField(upload_to='files',null=False,unique=False)
 
     class Meta:
-        verbose_name_plural='SUMS' 
+        verbose_name_plural='SUMS'
+
+class AnnualTotals(models.Model):
+    grantee=models.CharField(max_length=100,null=False)
+    year=models.CharField(null=False)
