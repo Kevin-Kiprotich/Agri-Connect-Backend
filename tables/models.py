@@ -8,4 +8,4 @@ class SUMS(models.Model):
     file=models.FileField(upload_to='files',null=False,unique=False)
 
     class Meta:
-        verbose_name_plural='SUMS'
+        verbose_name_plural='SUMS' 

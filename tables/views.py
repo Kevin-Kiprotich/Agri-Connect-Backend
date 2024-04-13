@@ -5,6 +5,7 @@ from rest_framework import status
 from .functions.ConvertSums import CreateSUMS
 import pandas as pd
 from .models import SUMS
+import ast
 # Create your views here.
 
 
@@ -34,13 +35,13 @@ class UploadSums(APIView):
       
 class getSUMS(APIView):
    def post(self,request):
-      column=request.POST.get('code')
-      district=request.POST.get('district')
-      grantee=request.POST.get('grantee')
+      grantee=request.data.get('grantee')
       quota=request.data.get('quota')
       year=request.data.get('year')
+      column=request.data.get('code')
       print(grantee)
 
+      sumsdata=[]
       try:
          data=SUMS.objects.get(grantee=grantee,quota=quota,year=year)
          print(data)
@@ -51,8 +52,23 @@ class getSUMS(APIView):
          # print(df.head())
 
          filtered_df=df[['district',column]]
-         print(filtered_df.head())
-         return Response({'success':True},status=status.HTTP_200_OK)
+         
+         for index, row in filtered_df.iterrows():
+            col=ast.literal_eval(row[column])
+            print(col)
+            objectStruct={
+               'district':row['district'],
+               'adult_male':col["Adult_Male"],
+               'adult_female':col["Adult_Female"],
+               'youth_male':col["Youth_Male"],
+               'youth_female':col["Youth_Female"],
+               'reference':col["Reference"],
+               'total':col["Total"],
+            }
+            sumsdata.append(objectStruct)
+
+         
+         return Response({'sucess':True,'data':sumsdata},status=status.HTTP_200_OK)
       except SUMS.DoesNotExist:
          return Response({'success':False},status=status.HTTP_404_NOT_FOUND)
       return ""
