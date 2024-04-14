@@ -64,7 +64,7 @@ class UploadSums(APIView):
       path=''
       atpath=''
       
-
+      print('uploading SUMS')
       processedCSV=CreateSUMS(grantee,file)
 
       for key in processedCSV:
@@ -98,13 +98,14 @@ class UploadSums(APIView):
             year = int(filename.split("_")[-1].split(".")[0])  # Extracting the year from the filename
             years_list.append(year)
 
+      print('Computing Annual totals')
       for year in range(min(years_list)+1,max(years_list)+1):
          annual_totals=compute_annual_totals(path,grantee,year-1,year)
          atpath=saveTotals(grantee,year-1,year,annual_totals)
       
 
       # store cummulative totals
-
+      print('Computing Cummulative Totals')
       cummulative_totals=compute_cumulative_totals(atpath,grantee)
       saveCT(grantee,cummulative_totals)
 
