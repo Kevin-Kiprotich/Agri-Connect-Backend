@@ -12,4 +12,8 @@ class SUMS(models.Model):
 
 class AnnualTotals(models.Model):
     grantee=models.CharField(max_length=100,null=False)
-    year=models.CharField(null=False)
+    year=models.CharField(max_length=25,null=False)
+    file=models.FileField(upload_to='annual_totals',null=False)
+
+    class Meta:
+        verbose_name_plural='Annual Totals'

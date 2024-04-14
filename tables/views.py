@@ -1,10 +1,12 @@
+import os
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .functions.ConvertSums import CreateSUMS
+from .functions.computeAT import compute_annual_totals
 import pandas as pd
-from .models import SUMS
+from .models import SUMS,AnnualTotals
 import ast
 # Create your views here.
 
@@ -35,8 +37,44 @@ class UploadSums(APIView):
 class computeTotals(APIView):
    def post(self,request):
       grantee=request.data.get('grantee')
+      start_year=request.data.get('start_year')
+      end_year=request.data.get('end_year')
 
-  
+      
+      sumsdata=SUMS.objects.filter(grantee=grantee, year=start_year)
+      print(sumsdata.exists())
+
+      if sumsdata.exists():
+         sumsobject=sumsdata.first()
+         sumspath=os.path.dirname(sumsobject.file.path)
+
+         annual_totals=compute_annual_totals(sumspath,grantee,start_year,end_year)
+         print(annual_totals)
+
+         try:
+            data=AnnualTotals.objects.get(grantee=grantee,year=f'{start_year}{end_year}')
+            os.remove(data.file.path)
+            data.delete()
+            data=AnnualTotals(grantee=grantee,year=f"{start_year}{end_year}")
+            data.file=annual_totals
+            data.file.name=f'at_{grantee}_{start_year}{end_year}.csv'
+            data.save()
+            return Response({'success':True,'message':'Annual Totals object found'},status=status.HTTP_200_OK)
+         
+         except AnnualTotals.DoesNotExist:
+            data=AnnualTotals(grantee=grantee,year=f"{start_year}{end_year}")
+            data.file=annual_totals
+            data.file.name=f'at_{grantee}_{start_year}{end_year}.csv'
+            data.save()
+            return Response({'success':True,'message':'Annual Totals object not found. New object created'},status=status.HTTP_200_OK)
+         
+      else:
+         return Response({'success':False,'message':'SUMS object not Found'})
+
+
+'''
+   Function to fetch SUMS from the database to frontend.
+'''
 class getSUMS(APIView):
    def post(self,request):
       grantee=request.data.get('grantee')

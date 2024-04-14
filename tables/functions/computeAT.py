@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import re
 import warnings
+from django.core.files.base import ContentFile
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 # Function to drop specific entries in the JSON
@@ -22,12 +23,17 @@ def drop_specific_entries(json_data, entries_to_drop):
     # Convert the modified JSON back to a string
     return json.dumps(data)
 
+# Function to add AnnualTotal to each JSON
+def add_annual_total(json_str):
+    data_dict = json.loads(json_str)
+    data_dict['AnnualTotal'] = sum(data_dict.get(f'TotalQ{i}', 0) for i in range(1, 5))
+    return json.dumps(data_dict)
+    
 
 def compute_annual_totals(quarters_path, grantee, startTime, endTime):
     # Generate the list of expected file names
     file_names = [
-        # f"SUMS_{grantee}_JulDec_{yearStart}.csv",
-        
+        f"SUMS_{grantee}_JulDec_{startTime}.csv".casefold(),
         f"SUMS_{grantee}_JulSep_{startTime}.csv".casefold(),
         f"SUMS_{grantee}_OctDec_{startTime}.csv".casefold(),
         f"SUMS_{grantee}_JanMar_{endTime}.csv".casefold(),
@@ -178,13 +184,8 @@ def compute_annual_totals(quarters_path, grantee, startTime, endTime):
     # Add the 'District' column back to the DataFrame at the beginning
     df_json = pd.concat([df['district'], df_json], axis=1)
     
-    # Function to add AnnualTotal to each JSON
-    def add_annual_total(json_str):
-        data_dict = json.loads(json_str)
-        data_dict['AnnualTotal'] = sum(data_dict.get(f'TotalQ{i}', 0) for i in range(1, 5))
-        return json.dumps(data_dict)
     
     # Apply the function to each column
     df_json.iloc[:, 1:] = df_json.iloc[:, 1:].applymap(add_annual_total)
 
-    return df_json.to_csv(index=False)
+    return ContentFile(df_json.to_csv(index=False))
