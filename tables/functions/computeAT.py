@@ -179,13 +179,13 @@ def compute_annual_totals(quarters_path, grantee, startTime, endTime):
             df[col] = df[col].apply(lambda x: re.findall(r'\d+', str(x))).apply(lambda x: {"TotalQ{}".format(i+1): int(val) for i, val in enumerate(x)})
     
     # Convert all columns except 'District' to JSON in each cell
-    df_json = df.drop('district', axis=1).applymap(json.dumps)
+    df_json = df.drop('district', axis=1).map(json.dumps)
     
     # Add the 'District' column back to the DataFrame at the beginning
     df_json = pd.concat([df['district'], df_json], axis=1)
     
     
     # Apply the function to each column
-    df_json.iloc[:, 1:] = df_json.iloc[:, 1:].applymap(add_annual_total)
+    df_json.iloc[:, 1:] = df_json.iloc[:, 1:].map(add_annual_total)
 
     return ContentFile(df_json.to_csv(index=False))

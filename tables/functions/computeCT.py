@@ -31,7 +31,7 @@ def add_annual_total(json_str):
     
 
 def compute_cumulative_totals(csv_directory, grantee):
-    csv_files = [file for file in os.listdir(csv_directory) if file.startswith(f'AT_{grantee}_') and file.endswith('.csv')]
+    csv_files = [file for file in os.listdir(csv_directory) if file.startswith(f'AT_{grantee}'.casefold()) and file.endswith('.csv')]
     
     # Sort the CSV files based on the ascending years
     sorted_csv_files = sorted(csv_files)
@@ -104,7 +104,7 @@ def compute_cumulative_totals(csv_directory, grantee):
         if col != 'district':
             df[col] = df[col].apply(lambda x: re.findall(r'\d+', str(x))).apply(lambda x: {"AnnualTotalY{}".format(i+1): int(val) for i, val in enumerate(x)})
     # Convert all columns except 'District' to JSON in each cell
-    df_json = df.drop('district', axis=1).applymap(json.dumps)
+    df_json = df.drop('district', axis=1).map(json.dumps)
     
     # Add the 'District' column back to the DataFrame at the beginning
     df_json = pd.concat([df['district'], df_json], axis=1)
@@ -112,7 +112,7 @@ def compute_cumulative_totals(csv_directory, grantee):
     
     
     # Apply the function to each column
-    df_json.iloc[:, 1:] = df_json.iloc[:, 1:].applymap(add_annual_total)
+    df_json.iloc[:, 1:] = df_json.iloc[:, 1:].map(add_annual_total)
     # Extract years from filenames
     years = [int(re.search(r'(\d{4})\d{4}', file).group(1)) for file in csv_files]
     

@@ -196,7 +196,7 @@ def CreateSUMS(grantee, file):
         df = pd.DataFrame(df_list)
     
         # Convert all columns except 'District' to JSON in each cell
-        df_json = df.drop('District', axis=1).applymap(json.dumps)
+        df_json = df.drop('District', axis=1).map(json.dumps)
     
         # Add the 'District' column back to the DataFrame at the beginning
         df_json = pd.concat([df['District'], df_json], axis=1)
@@ -219,7 +219,7 @@ def CreateSUMS(grantee, file):
     
     
         # Convert all columns except 'District' to JSON in each cell
-        df_json = df.drop('District', axis=1).applymap(json.dumps)
+        df_json = df.drop('District', axis=1).map(json.dumps)
     
         # Add the 'District' column back to the DataFrame at the beginning
         df_json = pd.concat([df['District'], df_json], axis=1)
