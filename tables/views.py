@@ -13,10 +13,10 @@ import ast
 
 def saveTotals(grantee,start_year,end_year,at_file):
    try:
-      data=AnnualTotals.objects.get(grantee=grantee,year=f'{start_year}{end_year}')
+      data=AnnualTotals.objects.get(grantee=grantee.casefold(),year=f'{start_year}{end_year}')
       os.remove(data.file.path)
       data.delete()
-      data=AnnualTotals(grantee=grantee,year=f"{start_year}{end_year}")
+      data=AnnualTotals(grantee=grantee.casefold(),year=f"{start_year}{end_year}")
       data.file=at_file
       data.file.name=f'at_{grantee}_{start_year}{end_year}.csv'.casefold()
       data.save()
@@ -24,7 +24,7 @@ def saveTotals(grantee,start_year,end_year,at_file):
          
 
    except AnnualTotals.DoesNotExist:
-      data=AnnualTotals(grantee=grantee,year=f"{start_year}{end_year}")
+      data=AnnualTotals(grantee=grantee.casefold(),year=f"{start_year}{end_year}")
       data.file=at_file
       data.file.name=f'at_{grantee}_{start_year}{end_year}.csv.'.casefold()
       data.save()
@@ -35,17 +35,17 @@ def saveTotals(grantee,start_year,end_year,at_file):
 """
 def saveCT(grantee,file):
    try:
-      data=CummulativeTotals.objects.get(grantee=grantee)
+      data=CummulativeTotals.objects.get(grantee=grantee.casefold())
       os.remove(data.file.path)
       data.delete()
-      data=CummulativeTotals(grantee=grantee)
+      data=CummulativeTotals(grantee=grantee.casefold())
       data.file=file
       data.file.name=f"ct_{grantee}.csv".casefold()
       data.save()
       return os.path.dirname(data.file.path)
    
    except CummulativeTotals.DoesNotExist:
-      data=CummulativeTotals(grantee=grantee)
+      data=CummulativeTotals(grantee=grantee.casefold())
       data.file=file
       data.file.name=f"ct_{grantee}.csv".casefold()
       data.save()
@@ -187,5 +187,77 @@ class getSUMS(APIView):
       except SUMS.DoesNotExist:
          return Response({'success':False},status=status.HTTP_404_NOT_FOUND)
 
+class getAT(APIView):
+   def post(self, request):
+      grantee=request.data.get('grantee')
+      year=request.data.get('year')
+      column=request.data.get('code')
+      print(grantee)
+      atdata=[]
+
+      try:
+         data=AnnualTotals.objects.get(grantee=grantee,year=year)
+         df=pd.read_csv(data.file.path)
+         df.dropna(inplace=True)
+
+         #filter the dataframe
+         filtered_df=df[['district',column]]
+         
+         for index, row in filtered_df.iterrows():
+            col=ast.literal_eval(row[column])
+            print(col)
+            try:
+               objectStruct={
+                  'district':row['district'],
+                  'totalQ1':col['TotalQ1'],
+                  'totalQ2':col['TotalQ2'],
+                  'totalQ3':col['TotalQ3'],
+                  'totalQ4':col['TotalQ4'],
+                  'annualtotal':col['AnnualTotal']
+               }
+            
+            except KeyError as e:
+               # print(f"Error: {e.args}\n\n")
+               print(f"KeyError: The key '{e.args[0]}' is not found in the dictionary.")
+               objectStruct={
+                  'district':row['district'],
+                  'totalQ1':col['TotalQ1'],
+                  'totalQ2':col['TotalQ2'],
+                  'totalQ3':col['TotalQ3'],
+                  'annualtotal':col['AnnualTotal']
+               }
+            atdata.append(objectStruct)
+         return Response({'success':True,'data':atdata},status=status.HTTP_200_OK)
+      except AnnualTotals.DoesNotExist:
+         return Response({'success':False},status=status.HTTP_404_NOT_FOUND)
 
 
+
+class getCT(APIView):
+   def post(self,request):
+      grantee=request.data.get('grantee')
+      column=request.data.get('code')
+
+      try:
+         data=CummulativeTotals.objects.get(grantee=grantee)
+         df=pd.read_csv(data.file.path)
+         df.dropna(inplace=True)
+         ct_data=[]
+         #filter the dataframe
+         filtered_df=df[['district',column]]
+
+         for index, row in filtered_df.iterrows():
+            col=ast.literal_eval(row[column])
+            print(col)
+            objectStruct={
+                  'annualtotaly1':col['AnnualTotalY1'],
+                  'annualtotaly2':col['AnnualTotalY2'],
+                  'annualtotaly3':col['AnnualTotalY3'],
+                  'cummulativetotal':col['CummulativeTotal']
+               }
+            ct_data.append(objectStruct)
+
+         return Response({'success':True,'data':ct_data},status=status.HTTP_200_OK)
+      
+      except CummulativeTotals.DoesNotExist:
+         return Response({'success':True},status=status.HTTP_404_NOT_FOUND)
