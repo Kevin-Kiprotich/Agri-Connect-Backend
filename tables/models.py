@@ -17,3 +17,7 @@ class AnnualTotals(models.Model):
 
     class Meta:
         verbose_name_plural='Annual Totals'
+
+class CumulativeTotals(models.Model):
+    grantee=models.CharField(max_length=100,null=False)
+    file=models.FileField(upload_to='cummulative_totals',null=False)

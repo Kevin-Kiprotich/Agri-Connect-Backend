@@ -105,7 +105,7 @@ def compute_annual_totals(quarters_path, grantee, startTime, endTime):
     
     
     # Specify the columns with JSON data and the entries to drop for each column
-    columns_to_process = columns_list  # Add more columns as needed
+    columns_to_process = columns_list # Add more columns as needed 
     entries_to_drop = ['Adult_Male', 'Adult_Male', 'Youth_Male', 'Adult_Female', 'Reference', 'Youth_Female']
     
     
