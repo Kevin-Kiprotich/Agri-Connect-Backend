@@ -33,7 +33,7 @@ def CreateSUMS(grantee, file):
     all_sheets = pd.read_excel(file, sheet_name=None)
 
     # Define sheets to exclude from further processing (if any)
-    exclude_sheets = ["Read Me"]
+    exclude_sheets = ["Read Me","Template"]
 
     # Filter out excluded sheets
     sheets_to_process = {sheet_name: all_sheets[sheet_name] for sheet_name in all_sheets if sheet_name not in exclude_sheets}

@@ -39,6 +39,8 @@ def compute_annual_totals(quarters_path, grantee, startTime, endTime):
         f"SUMS_{grantee}_JanMar_{endTime}.csv".casefold(),
         f"SUMS_{grantee}_AprJun_{endTime}.csv".casefold()
     ]
+
+    
     
     # Get the list of CSV files in the directory
     csv_files = []
@@ -63,33 +65,38 @@ def compute_annual_totals(quarters_path, grantee, startTime, endTime):
             csvinput3 = csv_file
         elif "AprJun".casefold() in csv_file:
             csvinput4 = csv_file
-
+    csvs=[csvinput1,csvinput2,csvinput3,csvinput4]
+    print(f"CSVs{csvs}")
+    dataframes=[]
     # Read CSV files with pandas, skipping missing files
     try:
         df1 = pd.read_csv(csvinput1)
+        dataframes.append(df1)
     except FileNotFoundError:
         df1 = None
     
     try:
         df2 = pd.read_csv(csvinput2)
+        dataframes.append(df2)
     except FileNotFoundError:
         df2 = None
     
     try:
         df3 = pd.read_csv(csvinput3)
+        dataframes.append(df3)
     except FileNotFoundError:
         df3 = None
     
     try:
         df4 = pd.read_csv(csvinput4)
+        dataframes.append(df4)
     except FileNotFoundError:
         df4 = None
-    dataframes = [df1, df2, df3, df4]
     
     columns_list  = None
-    
-    
+    print(f"These are the dataframes that have been found {dataframes}")
     for df in dataframes:
+        print(df)
         if df is not None:
             columns_list  = df.columns.tolist()
             break
@@ -105,7 +112,8 @@ def compute_annual_totals(quarters_path, grantee, startTime, endTime):
     
     
     # Specify the columns with JSON data and the entries to drop for each column
-    columns_to_process = columns_list # Add more columns as needed 
+    columns_to_process = columns_list
+     # Add more columns as needed 
     entries_to_drop = ['Adult_Male', 'Adult_Male', 'Youth_Male', 'Adult_Female', 'Reference', 'Youth_Female']
     
     

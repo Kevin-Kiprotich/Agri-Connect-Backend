@@ -97,11 +97,17 @@ class UploadSums(APIView):
             # Extract the year from the filename
             year = int(filename.split("_")[-1].split(".")[0])  # Extracting the year from the filename
             years_list.append(year)
-
+            
+      print(years_list)
       print('Computing Annual totals')
-      for year in range(min(years_list)+1,max(years_list)+1):
-         annual_totals=compute_annual_totals(path,grantee,year-1,year)
-         atpath=saveTotals(grantee,year-1,year,annual_totals)
+      for year in range(min(years_list),max(years_list)+2):
+         try:
+            annual_totals=compute_annual_totals(path,grantee,year-1,year)
+            atpath=saveTotals(grantee,year-1,year,annual_totals)
+         except TypeError as e:
+            if "'NoneType' object is not iterable" in e.args[0]:
+               print(f'A for {year-1}-{year} was not found')
+         
       
 
       # store cummulative totals
