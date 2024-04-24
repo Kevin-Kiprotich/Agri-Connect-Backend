@@ -268,3 +268,4 @@ class getCT(APIView):
       
       except CummulativeTotals.DoesNotExist:
          return Response({'success':True},status=status.HTTP_404_NOT_FOUND)
+      

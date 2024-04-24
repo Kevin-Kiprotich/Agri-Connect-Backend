@@ -63,7 +63,9 @@ def compute_annual_totals(quarters_path, grantee, startTime, endTime):
             csvinput3 = csv_file
         elif "AprJun".casefold() in csv_file:
             csvinput4 = csv_file
-
+    csvs=[csvinput1,csvinput2,csvinput3,csvinput4]
+    print(f"CSV inputs:\t{csvs}")
+    
     # Read CSV files with pandas, skipping missing files
     try:
         df1 = pd.read_csv(csvinput1)
