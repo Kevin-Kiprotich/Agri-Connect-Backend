@@ -14,7 +14,6 @@ class LoginView(APIView):
         # User=auth.get_user_model()
 
         try:
-            print(User.objects.all().values())
             user=User.objects.get(email=email)
             if user.check_password(password):
                 # auth_user=auth.authenticate(email=email,password=password)
@@ -54,3 +53,16 @@ class SignUpView(APIView):
                 'role':user.role,
             }
             return Response({'email':email,'user_metadata':user_metadata})
+        
+class LogoutView(APIView):
+    def post(self,request):
+        email=request.data.get('email')
+
+        User=auth.get_user_model()
+        try:
+            user=User.objects.get(email=email)
+            auth.logout(request)
+
+            return Response({'message':'User logout successful'})
+        except User.DoesNotExist:
+            return HttpResponseForbidden(JsonResponse({'message':'The email is not a registered email'}))
