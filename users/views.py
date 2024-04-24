@@ -18,6 +18,7 @@ class LoginView(APIView):
             user=User.objects.get(email=email)
             if user.check_password(password):
                 # auth_user=auth.authenticate(email=email,password=password)
+                auth.login(request,user)
                 print(user.is_active)
                 user_metadata={
                     'first_name':user.first_name,
