@@ -16,16 +16,21 @@ class LoginView(APIView):
         try:
             user=User.objects.get(email=email)
             if user.check_password(password):
-                # auth_user=auth.authenticate(email=email,password=password)
-                auth.login(request,user)
-                print(user.is_active)
-                user_metadata={
-                    'first_name':user.first_name,
-                    'last_name':user.last_name,
-                    'grantee':user.grantee,
-                    'role':user.role,
-                }
-                return Response({'email':user.email,'metadata':user_metadata})
+                auth_user=auth.authenticate(email=email,password=password)
+                print(auth_user)
+                if auth_user is not None:
+                    auth.login(request,user)
+                    print(user.is_active)
+                    user_metadata={
+                        'first_name':user.first_name,
+                        'last_name':user.last_name,
+                        'grantee':user.grantee,
+                        'role':user.role,
+                    }
+                    return Response({'email':user.email,'metadata':user_metadata})
+                else:
+                    print('user is none')
+                    return HttpResponseForbidden(JsonResponse({"message":"Could not authenticate user"}))
             else:
                 return HttpResponseForbidden(JsonResponse({"message":"Email and password do not match"}))
         except User.DoesNotExist:
