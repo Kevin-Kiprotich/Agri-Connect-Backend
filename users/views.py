@@ -24,40 +24,35 @@ class LoginView(APIView):
         try:
             user=User.objects.get(email=email)
             if user.check_password(password):
-                auth_user=auth.authenticate(email=email,password=password)
-                print(auth_user)
-                if auth_user is not None:
-                    auth.login(request,user)
-                    print(user.is_active)
-                    user_metadata={
-                        'firstName':user.first_name,
-                        'lastName':user.last_name,
-                        'grantee':user.grantee,
-                        'role':user.role,
-                    }
-                    if user.is_active:
-                        return Response({'email':user.email,'metadata':user_metadata})
-                    else:
-                        mail_subject = "Activate your user account."
-                        message = render_to_string("template_activate_account.html", {
-                            'first_name': user.first_name,
-                            'last_name':user.last_name,
-                            'domain': get_current_site(request).domain,
-                            'uid': urlsafe_base64_encode(force_bytes(email)),
-                            'token': account_activation_token.make_token(user),
-                            "protocol": 'https' if request.is_secure() else 'http'
-                        })
-                        mail = EmailMessage(mail_subject, message, to=[email])
-                        mail.content_subtype = 'html'
-                        if email.send():
-                            print("Email sent")
-                            return HttpResponseBadRequest(JsonResponse({'message':'Email not verified. A verification email has been sent to you.'}))
-                        else:
-                            print('Email not sent')
-                            return HttpResponseBadRequest(JsonResponse({'message':'Could not send verification email. Please make sure you use a valid email.'}))
+                auth.login(request,user)
+                print(user.is_active)
+                user_metadata={
+                    'firstName':user.first_name,
+                    'lastName':user.last_name,
+                    'grantee':user.grantee,
+                    'role':user.role,
+                }
+                if user.is_active:
+                    return Response({'email':user.email,'metadata':user_metadata})
                 else:
-                    print('user is none')
-                    return HttpResponseForbidden(JsonResponse({"message":"Could not authenticate user"}))
+                    mail_subject = "Activate your user account."
+                    message = render_to_string("template_activate_account.html", {
+                        'first_name': user.first_name,
+                        'last_name':user.last_name,
+                        'domain': get_current_site(request).domain,
+                        'uid': urlsafe_base64_encode(force_bytes(email)),
+                        'token': account_activation_token.make_token(user),
+                        "protocol": 'https' if request.is_secure() else 'http'
+                    })
+                    mail = EmailMessage(mail_subject, message, to=[email])
+                    mail.content_subtype = 'html'
+                    if mail.send():
+                        print("Email sent")
+                        return HttpResponseBadRequest(JsonResponse({'message':'Email not verified. A verification email has been sent to you.'}))
+                    else:
+                        print('Email not sent')
+                        return HttpResponseBadRequest(JsonResponse({'message':'Could not send verification email. Please make sure you use a valid email.'}))
+                
             else:
                 return HttpResponseForbidden(JsonResponse({"message":"Email and password do not match"}))
         except User.DoesNotExist:
