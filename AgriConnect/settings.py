@@ -147,3 +147,14 @@ REST_FRAMEWORK = {
         #'rest_framework.authentication.SessionAuthentication',
     ]
 }
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'mail.locateit.co.ke'
+EMAIL_USE_TLS = False
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'agriconnect@locateit.co.ke'
+EMAIL_HOST_PASSWORD ='Agriconnect@2023LI'
+
+DEFAULT_FROM_EMAIL = 'noreply<agriconnect@locateit.co.ke>'
+EXPIRE_AFTER = "1h"

@@ -1,9 +1,16 @@
-from django.shortcuts import render
+from django.shortcuts import render,redirect
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.contrib import auth
 from django.http import JsonResponse,HttpResponse, HttpResponseBadRequest,HttpResponseForbidden
 from .models import User
+
+from django.contrib.auth import authenticate,get_user_model
+from django.contrib.sites.shortcuts import get_current_site
+from django.template.loader import render_to_string 
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from .tokens import account_activation_token
 # Create your views here.
 
 class LoginView(APIView):
@@ -71,3 +78,22 @@ class LogoutView(APIView):
             return Response({'message':'User logout successful'})
         except User.DoesNotExist:
             return HttpResponseForbidden(JsonResponse({'message':'The email is not a registered email'}))
+        
+
+
+#activate user email
+def activate(request,uidb64,token):
+    User=get_user_model()
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        print(uid)
+        user = User.objects.get(email=uid)
+        print(user)
+    except:
+        user=None
+    if user is not None and account_activation_token.check_token(user, token):
+        user.is_active = True
+        user.save()
+        
+        # messages.success(request, "Thank you for your email confirmation. Now you can login your account.")
+        return redirect('http://coastalerosion.rcmrd.org/#/login')
