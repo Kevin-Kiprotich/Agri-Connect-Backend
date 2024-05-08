@@ -132,8 +132,40 @@ def activate(request,uidb64,token):
         
         # messages.success(request, "Thank you for your email confirmation. Now you can login your account.")
         return redirect('http://139.84.235.200/#/')
-    
 
+
+"""
+    Sequence to reset passwords.
+"""
+class UpdatePassword(APIView):
+    def post(self,request):
+        email=request.data.get('email')
+        try:
+            user=User.objects.get(email=email)
+            mail_subject = "Reset Your Password." 
+            message = render_to_string("template_change_password.html", {
+                'user': user,
+                'domain': get_current_site(request).domain,
+                'uid': urlsafe_base64_encode(force_bytes(email)),
+                'token': account_activation_token.make_token(user),
+                "protocol": 'https' if request.is_secure() else 'http'
+            })
+            mail = EmailMessage(mail_subject, message, to=[email])
+            mail.content_subtype = 'html'  # Set the content type to HTML
+            # email.attach_alternative(message, 'text/html')
+            # email = EmailMultiAlternatives(mail_subject, message, to=[email])
+            if mail.send():
+                print(f"Email sent for {email}")
+                return Response({'Success':True,'Message':'Check your email for a verification alert'})
+            else:
+                print(f'Email not sent for {email}')
+                return Response({'Success':False,'Message':'Trouble sending email. Make sure you have entered a valid email.'})
+            
+        except User.DoesNotExist:
+            return Response({'Success':False,'Message':'Email is not registered'})
+
+
+# Redirect when the access token link is clicked.
 def update(request,uidb64,token):
     User=get_user_model()
     try:
@@ -148,3 +180,25 @@ def update(request,uidb64,token):
         user=None
     if user is not None and account_activation_token.check_token(user, token):
         return redirect(f'http://139.84.235.200/#/')
+    
+
+class changePassword(APIView):
+    def post(self,request):
+        User=get_user_model()
+        # email=request.data.get('email')
+        token=request.data.get('token')
+        uidb64=request.data.get('uid')
+        password=request.data.get('password')
+        uid=force_str(urlsafe_base64_decode(uidb64))
+        
+        print(uid)
+        print(password)
+        
+        try:
+            user=User.objects.get(email=uid)
+            user.set_password(password)
+            user.save()
+            print('passoword changed')
+            return Response({'Success':True,'Message':'Password Changed Successfully'})
+        except User.DoesNotExist:
+            return HttpResponseBadRequest(JsonResponse({'Success':False,'Message':'Email not recognized'}))
