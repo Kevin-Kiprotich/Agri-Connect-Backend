@@ -5,6 +5,7 @@ from django.contrib import auth
 from django.http import JsonResponse,HttpResponse, HttpResponseBadRequest,HttpResponseForbidden
 from .models import User
 
+from django.core.mail import EmailMessage
 from django.contrib.auth import authenticate,get_user_model
 from django.contrib.sites.shortcuts import get_current_site
 from django.template.loader import render_to_string 
@@ -34,7 +35,26 @@ class LoginView(APIView):
                         'grantee':user.grantee,
                         'role':user.role,
                     }
-                    return Response({'email':user.email,'metadata':user_metadata})
+                    if user.is_active:
+                        return Response({'email':user.email,'metadata':user_metadata})
+                    else:
+                        mail_subject = "Activate your user account."
+                        message = render_to_string("template_activate_account.html", {
+                            'first_name': user.first_name,
+                            'last_name':user.last_name,
+                            'domain': get_current_site(request).domain,
+                            'uid': urlsafe_base64_encode(force_bytes(email)),
+                            'token': account_activation_token.make_token(user),
+                            "protocol": 'https' if request.is_secure() else 'http'
+                        })
+                        mail = EmailMessage(mail_subject, message, to=[email])
+                        mail.content_subtype = 'html'
+                        if email.send():
+                            print("Email sent")
+                            return HttpResponseBadRequest(JsonResponse({'message':'Email not verified. A verification email has been sent to you.'}))
+                        else:
+                            print('Email not sent')
+                            return HttpResponseBadRequest(JsonResponse({'message':'Could not send verification email. Please make sure you use a valid email.'}))
                 else:
                     print('user is none')
                     return HttpResponseForbidden(JsonResponse({"message":"Could not authenticate user"}))
@@ -57,6 +77,7 @@ class SignUpView(APIView):
             return HttpResponseBadRequest(JsonResponse({'message':'The email is already taken'}))
         except User.DoesNotExist:
             user=User.objects.create_user(email=email,first_name=first_name,last_name=last_name,grantee=grantee,role=role,password=password)
+            user.is_active=False
             user.save()
             user_metadata={
                 'firstName':user.first_name,
@@ -64,7 +85,26 @@ class SignUpView(APIView):
                 'grantee':user.grantee,
                 'role':user.role,
             }
-            return Response({'email':email,'user_metadata':user_metadata})
+            mail_subject = "Activate your user account."
+            message = render_to_string("template_activate_account.html", {
+                'first_name': first_name,
+                'last_name':last_name, 
+                'domain': get_current_site(request).domain,
+                'uid': urlsafe_base64_encode(force_bytes(email)),
+                'token': account_activation_token.make_token(user),
+                "protocol": 'https' if request.is_secure() else 'http'
+            })
+            mail = EmailMessage(mail_subject, message, to=[email])
+            mail.content_subtype = 'html'  # Set the content type to HTML
+            # email.attach_alternative(message, 'text/html')
+            print('sending message')
+            if mail.send():
+                print("Email sent")
+                return Response({'email':email,'user_metadata':user_metadata})
+            else:
+                print('Email not sent')
+                return HttpResponseBadRequest(JsonResponse({'message':'Could not send verification email. Please make sure you use a valid email.'}))
+            
         
 class LogoutView(APIView):
     def post(self,request):
@@ -96,4 +136,20 @@ def activate(request,uidb64,token):
         user.save()
         
         # messages.success(request, "Thank you for your email confirmation. Now you can login your account.")
-        return redirect('http://coastalerosion.rcmrd.org/#/login')
+        return redirect('http://139.84.235.200/#/')
+    
+
+def update(request,uidb64,token):
+    User=get_user_model()
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        print(uid)
+        user = User.objects.get(email=uid)
+        print(user)
+        
+        userEmail=user.email
+        print(userEmail)
+    except:
+        user=None
+    if user is not None and account_activation_token.check_token(user, token):
+        return redirect(f'http://139.84.235.200/#/')
