@@ -139,6 +139,7 @@ CORS_ORIGIN_WHITELIST=[
    "http://localhost:3000",'http://localhost:8000','http://192.168.1.31:8000','http://localhost:9001','http://192.168.182.173:9001'
 ]
 
+CORS_ALLOW_ALL_ORIGINS=True
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
     #    'rest_framework_simplejwt.authentication.JWTAuthentication',

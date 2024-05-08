@@ -22,8 +22,8 @@ class LoginView(APIView):
                     auth.login(request,user)
                     print(user.is_active)
                     user_metadata={
-                        'first_name':user.first_name,
-                        'last_name':user.last_name,
+                        'firstName':user.first_name,
+                        'lastName':user.last_name,
                         'grantee':user.grantee,
                         'role':user.role,
                     }
@@ -52,8 +52,8 @@ class SignUpView(APIView):
             user=User.objects.create_user(email=email,first_name=first_name,last_name=last_name,grantee=grantee,role=role,password=password)
             user.save()
             user_metadata={
-                'first_name':user.first_name,
-                'last_name':user.last_name,
+                'firstName':user.first_name,
+                'lastName':user.last_name,
                 'grantee':user.grantee,
                 'role':user.role,
             }
