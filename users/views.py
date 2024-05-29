@@ -31,6 +31,7 @@ class LoginView(APIView):
                     'lastName':user.last_name,
                     'grantee':user.grantee,
                     'role':user.role,
+                    'email':user.email
                 }
                 if user.is_active:
                     return Response({'email':user.email,'metadata':user_metadata})
