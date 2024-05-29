@@ -105,7 +105,7 @@ class LogoutView(APIView):
     def post(self,request):
         email=request.data.get('email')
 
-        User=auth.get_user_model()
+        
         try:
             user=User.objects.get(email=email)
             auth.logout(request)
