@@ -1,10 +1,11 @@
 from django.shortcuts import render,redirect
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from django.contrib import auth
 from django.http import JsonResponse,HttpResponse, HttpResponseBadRequest,HttpResponseForbidden
 from .models import User
-
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.core.mail import EmailMessage
 from django.contrib.auth import authenticate,get_user_model
 from django.contrib.sites.shortcuts import get_current_site
@@ -24,8 +25,9 @@ class LoginView(APIView):
         try:
             user=User.objects.get(email=email)
             if user.check_password(password):
-                auth.login(request,user)
-                print(user.is_active)
+
+                access_token = AccessToken.for_user(user)
+                refresh_token=RefreshToken.for_user(user)
                 user_metadata={
                     'firstName':user.first_name,
                     'lastName':user.last_name,
@@ -33,8 +35,15 @@ class LoginView(APIView):
                     'role':user.role,
                     'email':user.email
                 }
+                payload={'email':user.email,'metadata':user_metadata,}
                 if user.is_active:
-                    return Response({'email':user.email,'metadata':user_metadata})
+                    auth.login(request,user)
+                    return Response({
+                        'Success': True,
+                        'access_token':str(access_token),
+                        'refresh_token':str(refresh_token),
+                        'metadata':payload
+                    })
                 else:
                     mail_subject = "Activate your user account."
                     message = render_to_string("template_activate_account.html", {
@@ -181,6 +190,21 @@ def update(request,uidb64,token):
         user=None
     if user is not None and account_activation_token.check_token(user, token):
         return redirect(f'http://139.84.235.200/#/')
+    
+
+class GetUser(APIView):
+    permission_classes = (IsAuthenticated,)
+    def get(self,request):
+        user = request.user
+        user_metadata={
+                    'firstName':user.first_name,
+                    'lastName':user.last_name,
+                    'grantee':user.grantee,
+                    'role':user.role,
+                    'email':user.email
+                }
+        payload={'email':user.email,'metadata':user_metadata,}
+        return Response({'Success':True,'metadata':payload})
     
 
 class changePassword(APIView):

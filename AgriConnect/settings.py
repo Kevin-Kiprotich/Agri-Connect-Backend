@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+import datetime
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -23,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-eu(75kujo05viazmyszcbypo5%vnr9)(!^)r!ugmw3*zs_8n66'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1','localhost','192.168.1.31','139.84.235.200']
 
@@ -148,9 +149,17 @@ CORS_ORIGIN_WHITELIST=[
 ]
 
 CORS_ALLOW_ALL_ORIGINS=True
+
+SIMPLLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME":datetime.timedelta(days=7),
+    "REFRESH_TOKEN_LIFETIME":datetime.timedelta(days=1),
+    "UPDATE_LAST_LOGIN":True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-    #    'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.BasicAuthentication',
         #'rest_framework.authentication.SessionAuthentication',
     ]
