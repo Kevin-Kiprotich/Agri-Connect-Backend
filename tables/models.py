@@ -24,3 +24,10 @@ class CummulativeTotals(models.Model):
 
     class Meta:
         verbose_name_plural="Cummulative Totals"
+
+
+class Infrastructure(models.Model):
+    InFaNm = models.CharField(max_length=200, null=False,blank=True)
+    Region = models.CharField(max_length=50, null=False, blank=True)
+    District = models.CharField(max_length=100,null=False)
+    NmCntr = models.CharField(max_length=100,null=False)
