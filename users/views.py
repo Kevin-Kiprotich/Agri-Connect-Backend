@@ -38,12 +38,24 @@ class LoginView(APIView):
                 payload={'email':user.email,'metadata':user_metadata,}
                 if user.is_active:
                     auth.login(request,user)
-                    return Response({
+                    response = Response({
                         'Success': True,
-                        'access_token':str(access_token),
-                        'refresh_token':str(refresh_token),
+                        'token':str(access_token),
                         'metadata':payload
                     })
+
+                    # # Set the access token in an HTTP-only cookie
+                    # response.set_cookie(
+                    #     key='access_token',
+                    #     value=access_token,
+                    #     httponly=True,  # Make the cookie HTTP-only
+                    #     secure=False,    # Set to True if using HTTPS
+                    #     samesite='Lax', # or 'Strict' depending on your needs
+                    #     max_age=3600,   # Set the expiry time in seconds (1 hour here)
+                    #     path='/'
+                    # )
+
+                    return response
                 else:
                     mail_subject = "Activate your user account."
                     message = render_to_string("template_activate_account.html", {
@@ -112,6 +124,7 @@ class SignUpView(APIView):
             
         
 class LogoutView(APIView):
+    permission_classes = (IsAuthenticated,)
     def post(self,request):
         email=request.data.get('email')
 
