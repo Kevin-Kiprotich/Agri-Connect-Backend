@@ -3,31 +3,48 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from supabase import create_client
 from .functions.ConvertSums import CreateSUMS
-from .functions.computeAT import compute_annual_totals
 from .functions.computeCT import compute_cumulative_totals
+from .functions.supabaseUploads import upsert_data, create_table
+from .functions.annual_totals import compute_annual_totals
+from .functions.cumulative_totals import compute_cumulative
 import pandas as pd
 from .models import SUMS,AnnualTotals,CummulativeTotals
 import ast
+import os
 # Create your views here.
+
+from dotenv import load_dotenv
+load_dotenv()
+
+url = os.environ.get("SUPABASE_URL")
+key = os.environ.get("SUPABASE_KEY")
+supabase = create_client(url, key)
 
 def saveTotals(grantee,start_year,end_year,at_file):
    try:
+      print("Saving annual totals")
       data=AnnualTotals.objects.get(grantee=grantee.casefold(),year=f'{start_year}{end_year}')
       os.remove(data.file.path)
       data.delete()
       data=AnnualTotals(grantee=grantee.casefold(),year=f"{start_year}{end_year}")
       data.file=at_file
-      data.file.name=f'at_{grantee}_{start_year}{end_year}.csv'.casefold()
+      data.file.name=f'dag_at_{grantee}_{start_year}{end_year}.csv'.casefold()
       data.save()
+      create_table(data.file.path, supabase)
+      upsert_data(data.file.path, supabase)
       return os.path.dirname(data.file.path)
          
 
    except AnnualTotals.DoesNotExist:
+      print("Saving annual totals but annual totals does not exist")
       data=AnnualTotals(grantee=grantee.casefold(),year=f"{start_year}{end_year}")
       data.file=at_file
-      data.file.name=f'at_{grantee}_{start_year}{end_year}.csv.'.casefold()
+      data.file.name=f'dag_at_{grantee}_{start_year}{end_year}.csv.'.casefold()
       data.save()
+      create_table(data.file.path, supabase)
+      upsert_data(data.file.path, supabase)
       return os.path.dirname(data.file.path)
 
 """"
@@ -40,15 +57,19 @@ def saveCT(grantee,file):
       data.delete()
       data=CummulativeTotals(grantee=grantee.casefold())
       data.file=file
-      data.file.name=f"ct_{grantee}.csv".casefold()
+      data.file.name=f"dag_ct_{grantee}.csv".casefold()
       data.save()
+      create_table(data.file.path, supabase)
+      upsert_data(data.file.path, supabase)
       return os.path.dirname(data.file.path)
    
    except CummulativeTotals.DoesNotExist:
       data=CummulativeTotals(grantee=grantee.casefold())
       data.file=file
-      data.file.name=f"ct_{grantee}.csv".casefold()
+      data.file.name=f"dag_ct_{grantee}.csv".casefold()
       data.save()
+      create_table(data.file.path, supabase)
+      upsert_data(data.file.path, supabase)
       return os.path.dirname(data.file.path)
 
 
@@ -65,7 +86,7 @@ class UploadSums(APIView):
       atpath=''
       
       print('uploading SUMS')
-      processedCSV=CreateSUMS(grantee,file)
+      processedCSV=CreateSUMS(grantee,file,year,quota)
 
       for key in processedCSV:
          # print(type(str(key)))
@@ -80,12 +101,16 @@ class UploadSums(APIView):
             sums.file=processedCSV[key]
             sums.file.name=f'{key}.csv'
             sums.save()
+            create_table(sums.file.path, supabase)
+            upsert_data(sums.file.path, supabase)
             path=os.path.dirname(sums.file.path)
          except SUMS.DoesNotExist:
             sums=SUMS(grantee=data[1],quota=data[2],year=int(data[3]))
             sums.file=processedCSV[key]
             sums.file.name=f'{key}.csv'
             sums.save()
+            create_table(sums.file.path, supabase)
+            upsert_data(sums.file.path, supabase)
             path=os.path.dirname(sums.file.path)
          
 
@@ -102,17 +127,21 @@ class UploadSums(APIView):
       print('Computing Annual totals')
       for year in range(min(years_list),max(years_list)+2):
          try:
-            annual_totals=compute_annual_totals(path,grantee,year-1,year)
+            annual_totals=compute_annual_totals(path,grantee)
             atpath=saveTotals(grantee,year-1,year,annual_totals)
          except TypeError as e:
             if "'NoneType' object is not iterable" in e.args[0]:
                print(f'A for {year-1}-{year} was not found')
-         
+            else:
+               print(e.args[0])
+
+         except Exception as e:
+            print(e.args[0])         
       
 
       # store cummulative totals
       print('Computing Cummulative Totals')
-      cummulative_totals=compute_cumulative_totals(atpath,grantee)
+      cummulative_totals=compute_cumulative(grantee,atpath)
       saveCT(grantee,cummulative_totals)
 
       response=Response({"csv_data":processedCSV}, content_type='text/csv')
@@ -132,9 +161,7 @@ class computeTotals(APIView):
       if sumsdata.exists():
          sumsobject=sumsdata.first()
          sumspath=os.path.dirname(sumsobject.file.path)
-
          annual_totals=compute_annual_totals(sumspath,grantee,start_year,end_year)
-
          try:
             data=AnnualTotals.objects.get(grantee=grantee,year=f'{start_year}{end_year}')
             os.remove(data.file.path)
@@ -193,6 +220,7 @@ class getSUMS(APIView):
          return Response({'sucess':True,'data':sumsdata},status=status.HTTP_200_OK)
       except SUMS.DoesNotExist:
          return Response({'success':False},status=status.HTTP_404_NOT_FOUND)
+
 
 class getAT(APIView):
    def post(self, request):

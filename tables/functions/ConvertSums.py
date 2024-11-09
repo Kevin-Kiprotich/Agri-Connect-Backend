@@ -19,7 +19,7 @@ def custom_round(x):
     Convert the excel file and obtain sheets then convert to the required format.
     Take inputs as grantee and file and obtain the individual sheets for processing
 """
-def CreateSUMS(grantee, file):
+def CreateSUMS(grantee, file, year, quota):
     csvs_list={}
     # Suppress openpyxl warnings
     warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
@@ -255,7 +255,7 @@ def CreateSUMS(grantee, file):
         sheet_name_list=new_sheet_name.split(" ")
         new_sheet_name=sheet_name_list[0].casefold()+"_"+sheet_name_list[1]
         df_json.to_csv('test_file.csv',index=False)
-        filename=f'sums_{grantee}_{new_sheet_name}'.casefold()
+        filename=f'sums_{grantee}_{quota}_{year}'.casefold()
         
         # # Final CSV Export:
         # # output_csv_path = os.path.join(output_folder, f"SUMS_{grantee}_{sheet_name}.csv")
