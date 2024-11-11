@@ -1,4 +1,5 @@
 import os
+from django.http import JsonResponse,HttpResponse, HttpResponseBadRequest,HttpResponseForbidden
 from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -8,7 +9,7 @@ from .functions.ConvertSums import CreateSUMS
 from .functions.computeCT import compute_cumulative_totals
 from .functions.supabaseUploads import upsert_data, create_table
 from .functions.annual_totals import compute_annual_totals
-from .functions.cumulative_totals import compute_cumulative
+from .functions.cumulative_totals import compute_progressive_cumulative_totals
 import pandas as pd
 from .models import SUMS,AnnualTotals,CummulativeTotals
 import ast
@@ -22,16 +23,17 @@ url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase = create_client(url, key)
 
-def saveTotals(grantee,start_year,end_year,at_file):
+def saveTotals(grantee,yearGroup,at_file):
    try:
       print("Saving annual totals")
-      data=AnnualTotals.objects.get(grantee=grantee.casefold(),year=f'{start_year}{end_year}')
+      data=AnnualTotals.objects.get(grantee=grantee.casefold(),year=f'{yearGroup}')
       os.remove(data.file.path)
       data.delete()
-      data=AnnualTotals(grantee=grantee.casefold(),year=f"{start_year}{end_year}")
+      data=AnnualTotals(grantee=grantee.casefold(),year=f"{yearGroup}")
       data.file=at_file
-      data.file.name=f'dag_at_{grantee}_{start_year}{end_year}.csv'.casefold()
+      data.file.name=f'dag_at_{grantee}_{yearGroup}.csv'.casefold()
       data.save()
+      print(data.file.path)
       create_table(data.file.path, supabase)
       upsert_data(data.file.path, supabase)
       return os.path.dirname(data.file.path)
@@ -39,25 +41,28 @@ def saveTotals(grantee,start_year,end_year,at_file):
 
    except AnnualTotals.DoesNotExist:
       print("Saving annual totals but annual totals does not exist")
-      data=AnnualTotals(grantee=grantee.casefold(),year=f"{start_year}{end_year}")
+      data=AnnualTotals(grantee=grantee.casefold(),year=f"{yearGroup}")
       data.file=at_file
-      data.file.name=f'dag_at_{grantee}_{start_year}{end_year}.csv.'.casefold()
+      data.file.name=f'dag_at_{grantee}_{yearGroup}.csv.'.casefold()
       data.save()
+      print(os.path.dirname(data.file.path))
       create_table(data.file.path, supabase)
       upsert_data(data.file.path, supabase)
       return os.path.dirname(data.file.path)
+   
+
 
 """"
    Function to store cummulative totals from annual totals
 """
-def saveCT(grantee,file):
+def saveCT(grantee,file, groupkey):
    try:
       data=CummulativeTotals.objects.get(grantee=grantee.casefold())
       os.remove(data.file.path)
       data.delete()
       data=CummulativeTotals(grantee=grantee.casefold())
       data.file=file
-      data.file.name=f"dag_ct_{grantee}.csv".casefold()
+      data.file.name=f"dag_ct_{grantee}_{groupkey}.csv".casefold()
       data.save()
       create_table(data.file.path, supabase)
       upsert_data(data.file.path, supabase)
@@ -66,7 +71,7 @@ def saveCT(grantee,file):
    except CummulativeTotals.DoesNotExist:
       data=CummulativeTotals(grantee=grantee.casefold())
       data.file=file
-      data.file.name=f"dag_ct_{grantee}.csv".casefold()
+      data.file.name=f"dag_ct_{grantee}_{groupkey}.csv".casefold()
       data.save()
       create_table(data.file.path, supabase)
       upsert_data(data.file.path, supabase)
@@ -116,33 +121,26 @@ class UploadSums(APIView):
 
          # previous_year=int(year)-1
          # next_year=int(year)+1
-      years_list=[]
-      for filename in os.listdir(path):
-         if filename.endswith(".csv") and filename.startswith(f"sums_{grantee}".casefold()):# Check if the file is a CSV and starts with "sums_"
-            # Extract the year from the filename
-            year = int(filename.split("_")[-1].split(".")[0])  # Extracting the year from the filename
-            years_list.append(year)
-            
-      print(years_list)
-      print('Computing Annual totals')
-      for year in range(min(years_list),max(years_list)+2):
-         try:
-            annual_totals=compute_annual_totals(path,grantee)
-            atpath=saveTotals(grantee,year-1,year,annual_totals)
-         except TypeError as e:
-            if "'NoneType' object is not iterable" in e.args[0]:
-               print(f'A for {year-1}-{year} was not found')
-            else:
-               print(e.args[0])
+      
+      try:
+         yearGroup, annual_totals=compute_annual_totals(path,grantee)
+         atpath=saveTotals(grantee,yearGroup, annual_totals)
+      except TypeError as e:
+         if "'NoneType' object is not iterable" in e.args[0]:
+            print(f'A for {year-1}-{year} was not found')
+         elif "Invalid quota" in e.args[0]:
+            return HttpResponseForbidden(JsonResponse({'message':f"{quota} is an invalid quota"}))
+         else:
+            print(e.args[0])
 
-         except Exception as e:
-            print(e.args[0])         
+      except Exception as e:
+         print(e.args[0])         
       
 
       # store cummulative totals
       print('Computing Cummulative Totals')
-      cummulative_totals=compute_cumulative(grantee,atpath)
-      saveCT(grantee,cummulative_totals)
+      groupKey, cummulative_totals=compute_progressive_cumulative_totals(atpath, grantee)
+      saveCT(grantee,cummulative_totals, groupKey)
 
       response=Response({"csv_data":processedCSV}, content_type='text/csv')
       response['Content-Disposition'] = 'attachment; filename="file"'

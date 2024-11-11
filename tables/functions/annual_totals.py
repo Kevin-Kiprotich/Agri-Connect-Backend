@@ -23,6 +23,8 @@ def group_files_by_year(sums_directory):
                     year_group = f"{year-1}{year}"
                 elif 'aprjun' in file:
                     year_group = f"{year-1}{year}"
+                else:
+                    raise TypeError("Invalid quota")
             if year_group not in year_groups:
                 year_groups[year_group] = []
             year_groups[year_group].append(file)
@@ -67,6 +69,6 @@ def compute_annual_totals(sums_directory, Grantee):
         df0 = df.drop('district', axis=1).applymap(json.dumps)
         df = pd.concat([df['district'], df0], axis=1)
 
-        return ContentFile(df.to_csv(index=False))
+        return year_group, ContentFile(df.to_csv(index=False))
         
 

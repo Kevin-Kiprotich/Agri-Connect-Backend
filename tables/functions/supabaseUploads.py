@@ -83,7 +83,7 @@ def upsert_data(file_path, supabase):
                 print(f"An error occurred while upserting row {index} in table {table_name}: {e}")
 
     except Exception as e:
-        print(f"An error occurred while processing file {file_path}: {e}")
+        print(f"An error occurred while processing file {file_path}: {e.args[0]}")
 
 
 
